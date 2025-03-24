@@ -4,6 +4,7 @@ using Demonstration.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Demonstration.Controllers
 {
@@ -47,20 +48,6 @@ namespace Demonstration.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id, int taskId)
         {
-            var allEmployees = await _context.Users.ToListAsync();
-
-            var assignedEmployeeIds = await _context.UserTasks
-                .Where(ut => ut.TaskId == taskId)
-                .Select(ut => ut.UserId)
-                .ToListAsync();
-
-            var unassignedEmployees = allEmployees
-                .Where(e => !assignedEmployeeIds.Contains(e.Id))
-                .ToList();
-
-            ViewBag.TaskId = taskId;
-            ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
-
             var task = await _context.Tasks.FindAsync(id);
 
             if (task == null)
@@ -89,8 +76,22 @@ namespace Demonstration.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Detail(int id, int taskId)
         {
+            var allEmployees = await _context.Users.ToListAsync();
+
+            var assignedEmployeeIds = await _context.UserTasks
+                .Where(ut => ut.TaskId == taskId)
+                .Select(ut => ut.UserId)
+                .ToListAsync();
+
+            var unassignedEmployees = allEmployees
+                .Where(e => !assignedEmployeeIds.Contains(e.Id))
+            .ToList();
+
+            ViewBag.TaskId = taskId;
+            ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
+
             var task = await _context.Tasks.FindAsync(id);
 
             if (task == null)
@@ -101,7 +102,7 @@ namespace Demonstration.Controllers
             return View(task);
         }
 
-        [HttpPost]
+        [HttpGet]
         public async Task<IActionResult> Delete(WorkTask viewModel)
         {
             var task = await _context.Tasks

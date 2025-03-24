@@ -1,0 +1,31 @@
+﻿@model Demonstration.Models.Entities.WorkTask
+
+<h1>Work Task</h1>
+
+@if (Model is null)
+{
+    <p>No task was found with this ID!</p>
+}
+else
+{
+    <form method="get">
+        <div class="mt-3">
+            <label class="form-label">ID</label>
+            <p class="form-control-plaintext">@Model.Id</p>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label">Name</label>
+            <p class="form-control-plaintext">@Model.Name</p>
+        </div>
+
+        <input type="hidden" name="TaskId" value="@Model.Id" />
+
+        <label for="UserId">Select User:</label>
+        <select name="UserId" asp-items="ViewBag.UnassignedEmployees">
+            <option value="">-- Select a User --</option>
+        </select>
+
+        <button type="submit">Assign</button>
+    </form>
+}
