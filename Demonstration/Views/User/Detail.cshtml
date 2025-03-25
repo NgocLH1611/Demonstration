@@ -1,0 +1,45 @@
+﻿@model UserDetailVM
+
+<h1>User Detail</h1>
+
+@if (Model.User is null)
+{
+    <p>No user was found with this ID!</p>
+}
+else
+{
+    <div class="mt-3">
+        <label class="form-label">ID:</label>
+        <p class="form-control-plaintext">@Model.User.Id</p>
+    </div>
+
+    <div class="mt-3">
+        <label class="form-label">Name:</label>
+        <p class="form-control-plaintext">@Model.User.Name</p>
+    </div>
+
+    <div class="mt-3">
+        <label class="form-label">Email:</label>
+        <p class="form-control-plaintext">@Model.User.Email</p>
+    </div>
+
+    <div class="mt-3">
+        <label class="form-label">Role:</label>
+        <p class="form-control-plaintext">@Model.User.Role.Name</p>
+    </div>
+
+    <h2>Assigned Tasks</h2>
+    @if (Model.AssignedTasks.Any())
+    {
+        <ul>
+            @foreach (var task in Model.AssignedTasks)
+            {
+                <li>@task</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>No tasks assigned.</p>
+    }
+}

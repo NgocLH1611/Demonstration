@@ -63,11 +63,11 @@ namespace Demonstration.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit (User viewModel)
+        public async Task<IActionResult> Edit(User viewModel)
         {
             var user = await _context.Users.FindAsync(viewModel.Id);
-            
-            if(user is not null)
+
+            if (user is not null)
             {
                 user.Name = viewModel.Name;
                 user.Email = viewModel.Email;
@@ -95,5 +95,33 @@ namespace Demonstration.Controllers
 
             return RedirectToAction("List", "User");
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Detail(Guid id)
+        {
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var tasks = await _context.UserTasks
+                .Where(ut => ut.UserId == id)
+                .Include(ut => ut.Task)
+                .Select(ut => ut.Task.Name)
+                .ToListAsync();
+
+            var viewModel = new UserDetailVM
+            {
+                User = user,
+                AssignedTasks = tasks
+            };
+
+            return View(viewModel);
+        }
+
     }
 }

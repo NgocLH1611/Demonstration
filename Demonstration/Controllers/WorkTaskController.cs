@@ -4,7 +4,6 @@ using Demonstration.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace Demonstration.Controllers
 {
@@ -46,7 +45,7 @@ namespace Demonstration.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Edit(int id, int taskId)
+        public async Task<IActionResult> Edit(int id)
         {
             var task = await _context.Tasks.FindAsync(id);
 
@@ -76,33 +75,6 @@ namespace Demonstration.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Detail(int id, int taskId)
-        {
-            var allEmployees = await _context.Users.ToListAsync();
-
-            var assignedEmployeeIds = await _context.UserTasks
-                .Where(ut => ut.TaskId == taskId)
-                .Select(ut => ut.UserId)
-                .ToListAsync();
-
-            var unassignedEmployees = allEmployees
-                .Where(e => !assignedEmployeeIds.Contains(e.Id))
-            .ToList();
-
-            ViewBag.TaskId = taskId;
-            ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
-
-            var task = await _context.Tasks.FindAsync(id);
-
-            if (task == null)
-            {
-                return NotFound();
-            }
-
-            return View(task);
-        }
-
-        [HttpGet]
         public async Task<IActionResult> Delete(WorkTask viewModel)
         {
             var task = await _context.Tasks
@@ -116,6 +88,76 @@ namespace Demonstration.Controllers
             }
 
             return RedirectToAction("List", "Task");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Detail(int id)
+        {
+            var allEmployees = await _context.Users.ToListAsync();
+
+            var assignedEmployeeIds = await _context.UserTasks
+                .Where(ut => ut.TaskId == id)
+                .Select(ut => ut.UserId)
+                .ToListAsync();
+
+            var unassignedEmployees = allEmployees
+                .Where(e => !assignedEmployeeIds.Contains(e.Id))
+            .ToList();
+
+            ViewBag.TaskId = id;
+            Console.Write(ViewBag.TaskId);
+            ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
+
+            var task = await _context.Tasks.FindAsync(id);
+
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            return View(task);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignUser(Guid userId, int taskId)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (task.EnrolledParticipants >= task.MaximumParticipants)
+            {
+                TempData["ErrorMessage"] = "Task đã đạt số lượng tối đa người tham gia.";
+                return RedirectToAction("Detail", new { id = taskId });
+            }
+
+            var existingAssignment = await _context.UserTasks
+                .FirstOrDefaultAsync(et => et.TaskId == taskId && et.UserId == userId);
+
+            if (existingAssignment == null)
+            {
+                var employeeTask = new EmployeeTask
+                {
+                    TaskId = taskId,
+                    UserId = userId
+                };
+
+                _context.UserTasks.Add(employeeTask);
+
+                task.EnrolledParticipants++;
+
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Detail", new { id = taskId });
         }
     }
 }
