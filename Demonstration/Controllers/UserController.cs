@@ -4,6 +4,8 @@ using Demonstration.Data;
 using Demonstration.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Serilog;
+using System.Threading.Tasks;
 
 namespace Demonstration.Controllers
 {
@@ -32,6 +34,8 @@ namespace Demonstration.Controllers
                 Password = viewModel.Password,
                 RoleId = viewModel.RoleId
             };
+
+            //Log.Information("Detail Tasks => {@user}", user);
 
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
@@ -122,6 +126,5 @@ namespace Demonstration.Controllers
 
             return View(viewModel);
         }
-
     }
 }
