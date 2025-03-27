@@ -15,6 +15,12 @@ namespace Demonstration.Controllers
             _context = context;
         }
 
+        //var receiver = "noone0559@gmail.com";
+        //var subject = "Test";
+        //var content = "Hello World";
+
+        //await _emailSender.SendEmailAsync(receiver, subject, content);
+
         [HttpGet]
         public IActionResult Add()
         {

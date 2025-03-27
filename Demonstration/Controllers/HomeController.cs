@@ -1,19 +1,22 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Demonstration.Models;
+using Demonstration.Services;
 
 namespace Demonstration.Controllers;
 
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
+    private readonly IEmailSender _emailSender;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(ILogger<HomeController> logger, IEmailSender emailSender)
     {
         _logger = logger;
+        _emailSender = emailSender;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
         return View();
     }
