@@ -1,6 +1,7 @@
 ﻿using Demonstration.Data;
 using Demonstration.Models;
 using Demonstration.Models.Entities;
+using Demonstration.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,16 +11,12 @@ namespace Demonstration.Controllers
     public class WorkTaskController : Controller
     {
         private readonly ApplicationDbContext _context;
-        public WorkTaskController(ApplicationDbContext context)
+        private readonly IEmailSender _emailSender;
+        public WorkTaskController(ApplicationDbContext context, IEmailSender emailSender)
         {
             _context = context;
+            _emailSender = emailSender;
         }
-
-        //var receiver = "noone0559@gmail.com";
-        //var subject = "Test";
-        //var content = "Hello World";
-
-        //await _emailSender.SendEmailAsync(receiver, subject, content);
 
         [HttpGet]
         public IActionResult Add()
@@ -156,6 +153,11 @@ namespace Demonstration.Controllers
                     UserId = userId
                 };
 
+                var receiver = user.Email;
+                var subject = "Notification about being assigned a task" + task.Name;
+                var content = "The system would like to notify you that you have been assigned to " + task.Name + "." + " Please log in to the system for more details.";
+
+                await _emailSender.SendEmailAsync(receiver, subject, content);
                 _context.UserTasks.Add(employeeTask);
 
                 task.EnrolledParticipants++;
