@@ -1,5 +1,6 @@
 using Demonstration.Data;
 using Demonstration.Services;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -15,6 +16,9 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+builder.Services.AddHangfire(configuration => configuration.UseSqlServerStorage(builder.Configuration.GetConnectionString("Demonstration")));
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 

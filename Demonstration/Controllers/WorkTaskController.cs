@@ -2,9 +2,11 @@
 using Demonstration.Models;
 using Demonstration.Models.Entities;
 using Demonstration.Services;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Demonstration.Controllers
 {
@@ -37,7 +39,7 @@ namespace Demonstration.Controllers
             await _context.Tasks.AddAsync(task);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("List", "Task");
+            return View();
         }
 
         [HttpGet]
@@ -138,7 +140,7 @@ namespace Demonstration.Controllers
 
             if (task.EnrolledParticipants >= task.MaximumParticipants)
             {
-                TempData["ErrorMessage"] = "Task đã đạt số lượng tối đa người tham gia.";
+                TempData["ErrorMessage"] = "The task have reach maximum participants.";
                 return RedirectToAction("Detail", new { id = taskId });
             }
 
@@ -153,19 +155,22 @@ namespace Demonstration.Controllers
                     UserId = userId
                 };
 
-                var receiver = user.Email;
-                var subject = "Notification about being assigned a task" + task.Name;
-                var content = "The system would like to notify you that you have been assigned to " + task.Name + "." + " Please log in to the system for more details.";
-
-                await _emailSender.SendEmailAsync(receiver, subject, content);
                 _context.UserTasks.Add(employeeTask);
-
                 task.EnrolledParticipants++;
-
                 await _context.SaveChangesAsync();
+
+                BackgroundJob.Enqueue(() => SendEmail(user.Email, task.Name));
             }
 
             return RedirectToAction("Detail", new { id = taskId });
+        }
+
+        public void SendEmail(string receiver, string taskName)
+        {
+            var subject = "Notification about being assigned a task" + taskName;
+            var content = "The system would like to notify you that you have been assigned to " + taskName + "." + " Please log in to the system for more details.";
+
+            _emailSender.SendEmailAsync(receiver, subject, content);
         }
     }
 }
