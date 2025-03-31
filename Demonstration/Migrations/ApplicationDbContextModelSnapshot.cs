@@ -34,7 +34,7 @@ namespace Demonstration.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("UserTasks");
+                    b.ToTable("UserTasks", (string)null);
                 });
 
             modelBuilder.Entity("Demonstration.Models.Entities.Role", b =>
@@ -51,7 +51,7 @@ namespace Demonstration.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Demonstration.Models.Entities.User", b =>
@@ -79,7 +79,7 @@ namespace Demonstration.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Demonstration.Models.Entities.WorkTask", b =>
@@ -110,7 +110,7 @@ namespace Demonstration.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tasks");
+                    b.ToTable("Tasks", (string)null);
                 });
 
             modelBuilder.Entity("Demonstration.Models.Entities.EmployeeTask", b =>

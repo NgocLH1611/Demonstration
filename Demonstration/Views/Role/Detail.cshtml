@@ -1,0 +1,32 @@
+﻿@model Demonstration.Models.Entities.Role
+
+<h1>Role Detail</h1>
+
+@if (Model is null)
+{
+    <p>No role was found with this ID!</p>
+}
+else
+{
+    <form method="get">
+        <div class="mt-3">
+            <label class="form-label">ID:</label>
+            <p class="form-control-plaintext">@Model.Id</p>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label">Name:</label>
+            <p class="form-control-plaintext">@Model.Name</p>
+        </div>
+        <div class="mt-3">
+            <label>List of assigned users:</label>
+            <ul>
+                @foreach (var user in Model.Users)
+                {
+                    <li>@user.Name</li>
+                }
+            </ul>
+        </div>
+
+    </form>
+}

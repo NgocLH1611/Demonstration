@@ -85,5 +85,20 @@ namespace Demonstration.Controllers
 
             return RedirectToAction("List", "Role");
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Detail (int id)
+        {
+            var role = await _context.Roles.FindAsync(id);
+
+            if (role == null)
+            {
+                return NotFound();
+            }
+
+            await _context.Entry(role).Collection(r => r.Users).LoadAsync();
+
+            return View(role);
+        }
     }
 }

@@ -6,7 +6,6 @@ using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace Demonstration.Controllers
 {
@@ -14,6 +13,7 @@ namespace Demonstration.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IEmailSender _emailSender;
+
         public WorkTaskController(ApplicationDbContext context, IEmailSender emailSender)
         {
             _context = context;
@@ -110,7 +110,6 @@ namespace Demonstration.Controllers
             .ToList();
 
             ViewBag.TaskId = id;
-            Console.Write(ViewBag.TaskId);
             ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
 
             var task = await _context.Tasks.FindAsync(id);
@@ -140,7 +139,7 @@ namespace Demonstration.Controllers
 
             if (task.EnrolledParticipants >= task.MaximumParticipants)
             {
-                TempData["ErrorMessage"] = "The task have reach maximum participants.";
+                TempData["ErrorMessage"] = "The task has reach the maximum number of participants.";
                 return RedirectToAction("Detail", new { id = taskId });
             }
 
@@ -168,7 +167,7 @@ namespace Demonstration.Controllers
         public void SendEmail(string receiver, string taskName)
         {
             var subject = "Notification about being assigned a task" + taskName;
-            var content = "The system would like to notify you that you have been assigned to " + taskName + "." + " Please log in to the system for more details.";
+            var content = "The system would like to notify you that you have been assigned to " + taskName + " task." + " Please log in to the system for more details.";
 
             _emailSender.SendEmailAsync(receiver, subject, content);
         }

@@ -8,12 +8,10 @@ namespace Demonstration.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private readonly IEmailSender _emailSender;
 
-    public HomeController(ILogger<HomeController> logger, IEmailSender emailSender)
+    public HomeController(ILogger<HomeController> logger)
     {
         _logger = logger;
-        _emailSender = emailSender;
     }
 
     public async Task<IActionResult> Index()
