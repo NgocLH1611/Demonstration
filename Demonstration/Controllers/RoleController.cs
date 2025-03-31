@@ -4,15 +4,17 @@ using Demonstration.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Demonstration.Repository.Interfaces;
+using Demonstration.Repository;
 
 namespace Demonstration.Controllers
 {
     public class RoleController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        public RoleController(ApplicationDbContext context)
+        private readonly RoleRepository _roleRepository;
+        public RoleController(RoleRepository roleRepository)
         {
-            _context = context;
+            _roleRepository = roleRepository;
         }
 
         [HttpGet]
@@ -22,49 +24,37 @@ namespace Demonstration.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add(AddUserVM viewModel)
+        public async Task<IActionResult> Add(AddRoleVM viewModel)
         {
-            var role = new Role
-            {
-                Name = viewModel.Name
-            };
-
-            await _context.Roles.AddAsync(role);
-            await _context.SaveChangesAsync();
-
+            var role = new Role { Name = viewModel.Name };
+            await _roleRepository.AddAsync(role);
             return View();
         }
 
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var roles = await _context.Roles.ToListAsync();
-            return View(roles);
+            var role = await _roleRepository.GetAllAsync();
+            if (role == null) return NotFound();
+            return View(role);
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var role = await _context.Roles.FindAsync(id);
-
-            if (role is null)
-            {
-                return NotFound();
-            }
-
+            var role = await _roleRepository.GetByIdAsync(id);
             return View(role);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(Role viewModel)
         {
-            var role = await _context.Roles.FindAsync(viewModel.Id);
+            var role = await _roleRepository.GetByIdAsync(viewModel.Id);
 
             if (role is not null)
             {
                 role.Name = viewModel.Name;
-
-                await _context.SaveChangesAsync();
+                await _roleRepository.UpdateAsync(role);
             }
 
             return RedirectToAction("List", "Role");
@@ -73,30 +63,16 @@ namespace Demonstration.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(Role viewModel)
         {
-            var role = await _context.Roles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == viewModel.Id);
-
-            if (role is not null)
-            {
-                _context.Roles.Remove(viewModel);
-                await _context.SaveChangesAsync();
-            }
-
+            await _roleRepository.DeleteAsync(viewModel.Id);
             return RedirectToAction("List", "Role");
         }
 
         [HttpGet]
         public async Task<IActionResult> Detail (int id)
         {
-            var role = await _context.Roles.FindAsync(id);
-
-            if (role == null)
-            {
-                return NotFound();
-            }
-
-            await _context.Entry(role).Collection(r => r.Users).LoadAsync();
+            var role = await _roleRepository.GetByIdAsync(id);
+            if (role == null) return NotFound();
+            await _roleRepository.DetailAsync(role);
 
             return View(role);
         }

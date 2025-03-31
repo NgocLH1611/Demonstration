@@ -93,7 +93,7 @@ namespace Demonstration.Controllers
 
             if (user is not null)
             {
-                _context.Users.Remove(viewModel);
+                _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
             }
 

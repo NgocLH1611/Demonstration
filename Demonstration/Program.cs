@@ -1,4 +1,6 @@
 using Demonstration.Data;
+using Demonstration.Repository;
+using Demonstration.Repository.Interfaces;
 using Demonstration.Services;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,9 @@ builder.Services.AddTransient<IEmailSender, EmailSender>();
 
 builder.Services.AddHangfire(configuration => configuration.UseSqlServerStorage(builder.Configuration.GetConnectionString("Demonstration")));
 builder.Services.AddHangfireServer();
+
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<RoleRepository>();
 
 var app = builder.Build();
 
