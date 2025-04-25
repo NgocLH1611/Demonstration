@@ -29,7 +29,10 @@
                 <td>
                     <a class="btn btn-primary" asp-controller="Role" asp-action="Edit" asp-route-id="@role.Id">Edit</a>
                     <a class="btn btn-outline-info" asp-controller="Role" asp-action="Detail" asp-route-id="@role.Id">Detail</a>
-                    <a class="btn btn-danger" asp-controller="Role" asp-action="Delete" asp-route-id="@role.Id">Delete</a>
+                    <form asp-controller="Role" asp-action="Delete" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="@role.Id" />
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure to delete this role?')">Delete</button>
+                    </form>
                 </td>
             </tr>
         }

@@ -36,7 +36,7 @@ namespace Demonstration.Controllers
         {
             var role = await _roleRepository.GetAllAsync();
             if (role == null) return NotFound();
-            return View(role);
+            return RedirectToAction("List", "Role");
         }
 
         [HttpGet]

@@ -1,23 +1,28 @@
-﻿using Demonstration.Data;
-using Demonstration.Models;
+﻿using Demonstration.Models;
 using Demonstration.Models.Entities;
 using Demonstration.Services;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Text.Json;
+using Demonstration.Repository.Interfaces;
 
 namespace Demonstration.Controllers
 {
     public class WorkTaskController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IWorkTaskRepository _workTaskRepository;
         private readonly IEmailSender _emailSender;
+        private readonly HttpClient _httpClient;
+        private string _ApiUrl;
 
-        public WorkTaskController(ApplicationDbContext context, IEmailSender emailSender)
+        public WorkTaskController(IEmailSender emailSender, HttpClient httpClient, IConfiguration config, IWorkTaskRepository workTaskRepository)
         {
-            _context = context;
+            _workTaskRepository = workTaskRepository;
             _emailSender = emailSender;
+            _httpClient = httpClient;
+            _ApiUrl = config["ApiConfiguration"];
         }
 
         [HttpGet]
@@ -36,23 +41,21 @@ namespace Demonstration.Controllers
                 MaximumParticipants = viewModel.MaximumParticipants
             };
 
-            await _context.Tasks.AddAsync(task);
-            await _context.SaveChangesAsync();
-
+            await _workTaskRepository.AddTaskAsync(task);
             return View();
         }
 
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var tasks = await _context.Tasks.ToListAsync();
+            var tasks = await _workTaskRepository.GetAllTasksAsync();
             return View(tasks);
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var task = await _context.Tasks.FindAsync(id);
+            var task = await _workTaskRepository.GetTaskByIdAsync(id);
 
             if (task == null)
             {
@@ -65,7 +68,7 @@ namespace Demonstration.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(WorkTask viewModel)
         {
-            var task = await _context.Tasks.FindAsync(viewModel.Id);
+            var task = await _workTaskRepository.GetTaskByIdAsync(viewModel.Id);
 
             if (task is not null)
             {
@@ -73,46 +76,75 @@ namespace Demonstration.Controllers
                 task.Description = viewModel.Description;
                 task.MaximumParticipants = viewModel.MaximumParticipants;
 
-                await _context.SaveChangesAsync();
+                await _workTaskRepository.UpdateTaskAsync(task);
             }
 
-            return RedirectToAction("List", "Task");
+            return RedirectToAction("List", "WorkTask");
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Delete(WorkTask viewModel)
         {
-            var task = await _context.Tasks
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == viewModel.Id);
+            var task = await _workTaskRepository.GetTaskByIdAsync(viewModel.Id);
 
             if (task is not null)
             {
-                _context.Tasks.Remove(viewModel);
-                await _context.SaveChangesAsync();
+                await _workTaskRepository.DeleteTaskAsync(task);
             }
 
-            return RedirectToAction("List", "Task");
+            return RedirectToAction("List", "WorkTask");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadFile(int taskId, string fileName)
+        {
+            string apiUrl = $"{_ApiUrl}download/{taskId}/{fileName}";
+            var response = await _httpClient.GetAsync(apiUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                TempData["ErrorMessage"] = "Find not found.";
+                return NotFound();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var json = JsonDocument.Parse(content);
+            var signedUrl = json.RootElement.GetProperty("url").GetString();
+
+            var fileResponse = await _httpClient.GetAsync(signedUrl);
+
+            if (!fileResponse.IsSuccessStatusCode)
+            {
+                TempData["ErrorMessage"] = "Error(s) from Firebase.";
+                return NotFound();
+            }
+
+            var fileBytes = await fileResponse.Content.ReadAsByteArrayAsync();
+            var contentType = fileResponse.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+
+            return File(fileBytes, contentType, fileName);
         }
 
         [HttpGet]
         public async Task<IActionResult> Detail(int id)
         {
-            var allEmployees = await _context.Users.ToListAsync();
+            var response = await _httpClient.GetAsync($"{_ApiUrl}{id}");
 
-            var assignedEmployeeIds = await _context.UserTasks
-                .Where(ut => ut.TaskId == id)
-                .Select(ut => ut.UserId)
-                .ToListAsync();
+            List<string> fileNames = new();
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                fileNames = JsonConvert.DeserializeObject<List<string>>(responseString);
+            }
+            ViewBag.Files = fileNames;
 
-            var unassignedEmployees = allEmployees
-                .Where(e => !assignedEmployeeIds.Contains(e.Id))
-            .ToList();
-
-            ViewBag.TaskId = id;
+            var unassignedEmployees = await _workTaskRepository.GetUnassignedEmployeesAsync(id);
             ViewBag.UnassignedEmployees = new SelectList(unassignedEmployees, "Id", "Name");
 
-            var task = await _context.Tasks.FindAsync(id);
+            var assignedEmployee = await _workTaskRepository.GetAssignedEmployeeAsync(id);
+            ViewBag.AssignedEmployees = new SelectList(assignedEmployee, "Id", "Name");
+
+            var task = await _workTaskRepository.GetTaskByIdAsync(id);
 
             if (task == null)
             {
@@ -125,42 +157,34 @@ namespace Demonstration.Controllers
         [HttpPost]
         public async Task<IActionResult> AssignUser(Guid userId, int taskId)
         {
-            var task = await _context.Tasks.FindAsync(taskId);
-            if (task == null)
+            var result = await _workTaskRepository.AssignUserToTaskAsync(userId, taskId);
+
+            switch (result.Status)
             {
-                return NotFound();
+                case AssignStatus.TaskNotFound:
+                case AssignStatus.UserNotFound:
+                    return NotFound();
+
+                case AssignStatus.ReachMax:
+                    TempData["ErrorMessage"] = "The task has reach its maximum participants";
+                    break;
+
+                case AssignStatus.Failed:
+                    TempData["ErrorMessage"] = "Unexpected error! Please try again later.";
+                    break;
+
+                case AssignStatus.Sucess:
+                    BackgroundJob.Enqueue(() => SendEmail(result.UserEmail, result.TaskName));
+                    TempData["SuccessMessage"] = "User assigned successfully.";
+                    break;
             }
 
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            return RedirectToAction("Detail", new { id = taskId });
+        }
 
-            if (task.EnrolledParticipants >= task.MaximumParticipants)
-            {
-                TempData["ErrorMessage"] = "The task has reach the maximum number of participants.";
-                return RedirectToAction("Detail", new { id = taskId });
-            }
-
-            var existingAssignment = await _context.UserTasks
-                .FirstOrDefaultAsync(et => et.TaskId == taskId && et.UserId == userId);
-
-            if (existingAssignment == null)
-            {
-                var employeeTask = new EmployeeTask
-                {
-                    TaskId = taskId,
-                    UserId = userId
-                };
-
-                _context.UserTasks.Add(employeeTask);
-                task.EnrolledParticipants++;
-                await _context.SaveChangesAsync();
-
-                BackgroundJob.Enqueue(() => SendEmail(user.Email, task.Name));
-            }
-
+        public async Task<IActionResult> RemoveEmployeeFromTask(Guid userId, int taskId)
+        {
+            await _workTaskRepository.RemoveEmployeeFromTask(userId, taskId);
             return RedirectToAction("Detail", new { id = taskId });
         }
 

@@ -1,11 +1,13 @@
+using Azure;
 using Demonstration.Data;
+using Demonstration.Models.Entities;
 using Demonstration.Repository;
 using Demonstration.Repository.Interfaces;
 using Demonstration.Services;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
-using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,27 @@ builder.Services.AddHangfireServer();
 
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<RoleRepository>();
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<UserRepository>();
+
+builder.Services.AddScoped<IWorkTaskRepository, WorkTaskRepository>();
+builder.Services.AddScoped<WorkTaskRepository>();
+
+builder.Services.Configure<ApiConfiguration>(builder.Configuration.GetSection("ApiConfiguration"));
+
+builder.Services.AddHttpClient("FileUploadAPI", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:5001/api/files/");
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+});
 
 var app = builder.Build();
 

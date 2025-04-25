@@ -6,21 +6,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Serilog;
 using System.Threading.Tasks;
+using Demonstration.Repository.Interfaces;
+using Demonstration.Repository;
 
 namespace Demonstration.Controllers
 {
     public class UserController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        public UserController(ApplicationDbContext context)
+        private readonly UserRepository _userRepository;
+        public UserController(UserRepository userRepository)
         {
-            _context = context;
+            _userRepository = userRepository;
         }
 
         [HttpGet]
         public async Task<IActionResult> Add()
         {
-            ViewBag.Roles = new SelectList(await _context.Roles.ToListAsync(), "Id", "Name");
+            ViewBag.Roles = new SelectList(await _userRepository.GetAllRolesAsync(), "Id", "Name");
             return View();
         }
 
@@ -35,41 +37,36 @@ namespace Demonstration.Controllers
                 RoleId = viewModel.RoleId
             };
 
-            //Log.Information("Detail Tasks => {@user}", user);
-
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-
-            return View();
+            await _userRepository.AddAsync(user);
+            return RedirectToAction("List", "User");
         }
 
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var users = await _context.Users
-                .Include(u => u.Role)
-                .ToListAsync();
+            var users = await _userRepository.GetAllAsync();
+            if (users == null) return NotFound();
             return View(users);
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
                 return NotFound();
             }
 
-            ViewBag.Roles = new SelectList(await _context.Roles.ToListAsync(), "Id", "Name", user.RoleId);
+            ViewBag.Roles = new SelectList(await _userRepository.GetAllRolesAsync(), "Id", "Name", user.RoleId);
             return View(user);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(User viewModel)
         {
-            var user = await _context.Users.FindAsync(viewModel.Id);
+            var user = await _userRepository.GetByIdAsync(viewModel.Id);
 
             if (user is not null)
             {
@@ -78,7 +75,7 @@ namespace Demonstration.Controllers
                 user.Password = viewModel.Password;
                 user.RoleId = viewModel.RoleId;
 
-                await _context.SaveChangesAsync();
+                await _userRepository.UpdateAsync(user);
             }
 
             return RedirectToAction("List", "User");
@@ -87,37 +84,17 @@ namespace Demonstration.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(User viewModel)
         {
-            var user = await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == viewModel.Id);
-
-            if (user is not null)
-            {
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
-            }
-
+            await _userRepository.DeleteAsync(viewModel.Id);
             return RedirectToAction("List", "User");
         }
 
         [HttpGet]
         public async Task<IActionResult> Detail(Guid id)
         {
-            var user = await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null) return NotFound();
 
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            var tasks = await _context.UserTasks
-                .Where(ut => ut.UserId == id)
-                .Include(ut => ut.Task)
-                .Select(ut => ut.Task.Name)
-                .ToListAsync();
-
+            var tasks = await _userRepository.GetWorkTasksAsync(id);
             var viewModel = new UserDetailVM
             {
                 User = user,

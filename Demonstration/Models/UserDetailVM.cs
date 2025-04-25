@@ -5,6 +5,6 @@ namespace Demonstration.Models
     public class UserDetailVM
     {
         public User User { get; set; }
-        public List<string> AssignedTasks { get; set; }
+        public List<WorkTask> AssignedTasks { get; set; }
     }
 }

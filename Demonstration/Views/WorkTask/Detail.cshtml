@@ -9,23 +9,30 @@
 else
 {
     <form method="get">
-        <div class="mt-3">
-            <label class="form-label">ID:</label>
-            <p class="form-control-plaintext">@Model.Id</p>
-        </div>
-
-        <div class="mt-3">
-            <label class="form-label">Name:</label>
-            <p class="form-control-plaintext">@Model.Name</p>
-        </div>
-
-        <div class="mt-3">
-            <label class="form-label">Description:</label>
-            <p class="form-control-plaintext">@Model.Description</p>
+        <div class="mt-3 d-flex align-items-center gap-4 flex-wrap">
+            <div>
+                <label class="form-label mb-0">ID:</label>
+                <p class="form-control-plaintext d-inline mb-0">@Model.Id</p>
+            </div>
+            <div>
+                <label class="form-label mb-0">Name:</label>
+                <p class="form-control-plaintext d-inline mb-0">@Model.Name</p>
+            </div>
+            <div>
+                <label class="form-label mb-0">Description:</label>
+                <p class="form-control-plaintext d-inline mb-0">@Model.Description</p>
+            </div>
+            <div>
+                <label class="form-label mb-0">Maximum Participants:</label>
+                <p class="form-control-plaintext d-inline mb-0">@Model.MaximumParticipants</p>
+            </div>
+            <div>
+                <label class="form-label mb-0">Enrolled Participants:</label>
+                <p class="form-control-plaintext d-inline mb-0">@Model.EnrolledParticipants</p>
+            </div>
         </div>
 
         <input type="hidden" name="TaskId" value="@Model.Id" />
-
     </form>
 
     @if (TempData["ErrorMessage"] != null)
@@ -33,9 +40,51 @@ else
         <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
     }
 
+    <h3>Task Files</h3>
+    @if (ViewBag.Files != null && ViewBag.Files.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var file in ViewBag.Files)
+                {
+                    <tr>
+                        <td>@file</td>
+                        <td>
+                            <a href="@Url.Action("DownloadFile", "WorkTask", new { taskId = Model.Id, fileName = file })" class="btn btn-sm btn-success">Download</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No files found for this task.</p>
+    }
+
+    <h3>List of Assigned Employees</h3>
+    <form asp-controller="WorkTask" asp-action="RemoveEmployeeFromTask" method="post">
+        <input type="hidden" name="taskId" value="@Model.Id" />
+        <div class="form-group">
+            <label>Select User:</label>
+            <select class="form-control" name="userId" asp-items="ViewBag.AssignedEmployees"></select>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Delete User</button>
+    </form>
+
+    <h3>Assign User</h3>
     <form asp-controller="WorkTask" asp-action="AssignUser" method="post">
-        <input type="hidden" name="taskId" value="@ViewBag.TaskId" />
-        <select class="form-control" name="userId" asp-items="ViewBag.UnassignedEmployees"></select>
+        <input type="hidden" name="taskId" value="@Model.Id" />
+        <div class="form-group">
+            <label>Select User:</label>
+            <select class="form-control" name="userId" asp-items="ViewBag.UnassignedEmployees"></select>
+        </div>
         <button type="submit" class="btn btn-primary mt-2">Assign User</button>
     </form>
 }

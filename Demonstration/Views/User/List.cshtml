@@ -2,6 +2,10 @@
 
 <h1>Users</h1>
 
+<td>
+    <a class="btn btn-primary" asp-controller="User" asp-action="Add">Add</a>
+</td>
+
 <table class="table table-striped">
     <thead>
         <tr>
@@ -25,7 +29,10 @@
                 <td>@(user.Role.Name)</td>
                 <td>
                     <a class="btn btn-primary" asp-controller="User" asp-action="Edit" asp-route-id="@user.Id">Edit</a>
-                    <a class="btn btn-danger" asp-controller="User" asp-action="Delete" asp-route-id="@user.Id">Delete</a>
+                    <form asp-controller="User" asp-action="Delete" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="@user.Id" />
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure to delete this user?')">Delete</button>
+                    </form>
                     <a class="btn btn-outline-info" asp-controller="User" asp-action="Detail" asp-route-id="@user.Id">Detail</a>
                 </td>
             </tr>
